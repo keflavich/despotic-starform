@@ -3,6 +3,7 @@ import h5py
 import numpy as np
 import pylab as pl
 
+# data from http://starformat.obspm.fr/starformat/project/TURB_BOX
 with h5py.File('DF_hdf5_plt_cnt_0020_dens_downsampled','r') as ds:
     pppcube = np.array(ds['dens_downsampled'])
 with h5py.File('DF_hdf5_plt_cnt_0020_velz_downsampled','r') as ds:
@@ -66,4 +67,4 @@ for ii,key in enumerate(props):
     spectra[key] = np.bincount(vinds, weights=props[key], minlength=nelts)
     pl.subplot(2,3,ii)
     pl.plot(vgrid, spectra[key])
-    pl.title(ii)
+    pl.title(key)

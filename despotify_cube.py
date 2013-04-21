@@ -1,12 +1,18 @@
 import despotic
 import numpy as np
 import itertools
+try:
+    import multiprocessing
+    parallelOK = True
+except ImportError:
+    parallelOK = False
 
 
 def despotify(pcube, vcube, vgrid, voxel_size=3.08e18, species='o-h2co',
               cloud=None, cloudfile='MilkyWayGMC.desp', cloudfile_path=None,
               output_linenumbers=[0,2],
-              output_properties=['tau','Tex','intTB']):
+              output_properties=['tau','Tex','intTB'],
+              nprocs=1):
     """
     Turn a simulated ppp cube into a ppv cube using despotic for the radiative
     transfer
@@ -42,6 +48,10 @@ def despotify(pcube, vcube, vgrid, voxel_size=3.08e18, species='o-h2co',
         cubes
     output_properties : iterable
         A list of strings identifying the line properties to output as cubes
+    nprocs : int
+        Number of processes.  If <=1, will not try to parallelize.  If >1, will
+        use python's multiprocessing toolkit to try to parallelize the code
+        execution.
 
     Returns
     -------
@@ -76,33 +86,51 @@ def despotify(pcube, vcube, vgrid, voxel_size=3.08e18, species='o-h2co',
         cloud = despotic.cloud(fileName="{0}/{1}".format(cloudfile_path,
                                cloudfile))
 
-    try:
-        from progressbar import ProgressBar,Percentage,Bar
-        from progressbar import AdaptiveETA as ETA
-    except ImportError:
-        from progressbar import ProgressBar,Percentage,Bar
-        from progressbar import ETA
-    pb = ProgressBar(widgets=[Percentage(), ETA(), Bar()],
-                     maxval=pcube.size).start()
-
     # property cubes prior to gridding have same shape as input cubes
     # use dict() instead of {} for python2.6 compatibility
     prop_cubes = dict([
         ("{0}{1}".format(pr,ln), np.empty(pcube.shape))
         for ln,pr in itertools.product(output_linenumbers, output_properties)])
 
-    for (zi,yi,xi),nH in np.ndenumerate(pcube):
-        cloud.nH = pcube[zi,yi,xi]
-        cloud.colDen = cloud.nH * voxel_size
-        line = cloud.lineLum(species)
 
-        for ln,pr in itertools.product(output_linenumbers,
-                                       output_properties):
-            key = "{0}{1}".format(pr,ln)
-            prop_cubes[key][zi,yi,xi] = line[ln][pr]
+    if parallelOK and nprocs > 1:
+        # for parallelization
+        def model_a_pixel(density, cloud=cloud):
+            cloud.nH = density
+            cloud.colDen = cloud.nH * voxel_size
+            line = cloud.lineLum(species)
+            results = [("{0}{1}".format(pr,ln),
+                        line[ln][pr])
+                       for ln,pr in itertools.product(output_linenumbers,
+                                                      output_properties)]
+            return dict(results)
 
-        pb.update(pb.currval+1)
-    pb.finish()
+        pool = multiprocessing.Pool(nprocs)
+        result = pool.map(model_a_pixel,pcube.flat)
+        raise TheDead
+
+    else: 
+        try:
+            from progressbar import ProgressBar,Percentage,Bar
+            from progressbar import AdaptiveETA as ETA
+        except ImportError:
+            from progressbar import ProgressBar,Percentage,Bar
+            from progressbar import ETA
+        pb = ProgressBar(widgets=[Percentage(), ETA(), Bar()],
+                         maxval=pcube.size).start()
+
+        for (zi,yi,xi),nH in np.ndenumerate(pcube):
+            cloud.nH = pcube[zi,yi,xi]
+            cloud.colDen = cloud.nH * voxel_size
+            line = cloud.lineLum(species)
+
+            for ln,pr in itertools.product(output_linenumbers,
+                                           output_properties):
+                key = "{0}{1}".format(pr,ln)
+                prop_cubes[key][zi,yi,xi] = line[ln][pr]
+
+            pb.update(pb.currval+1)
+        pb.finish()
 
     # spectral cubes have outcubeshape
     spectra_cubes = {}
@@ -118,3 +146,4 @@ def despotify(pcube, vcube, vgrid, voxel_size=3.08e18, species='o-h2co',
                             minlength=nelts)
 
     return spectra_cubes,prop_cubes
+

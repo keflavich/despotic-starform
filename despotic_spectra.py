@@ -24,19 +24,21 @@ vgrid = np.linspace(ppvcube.min(),ppvcube.max(),nelts)
 vdata = ppvcube[:,y-expand:y+expand+1,x-expand:x+expand+1]
 pdata = pppcube[:,y-expand:y+expand+1,x-expand:x+expand+1] * cloud_mean_density
 
-vinds = np.empty(vdata.shape)
+vinds = np.empty(vdata.shape,dtype='int64')
 volume_spectra = np.empty(vgrid.shape + vdata.shape[1:])
 dens_spectra = np.empty(vgrid.shape + vdata.shape[1:])
 for jj in xrange(vdata.shape[1]):
     for kk in xrange(vdata.shape[2]):
-vinds = np.array([np.digitize(vdata[:,jj,kk], vgrid) for jj in xrange(vdata.shape[1]) for kk in xrange(vdata.shape[2])])
-volume_spectrum = np.bincount(vinds, minlength=nelts)
-dens_spectrum = np.bincount(vinds, weights=pdata.flat, minlength=nelts)
+        vinds[:,jj,kk] = np.digitize(vdata[:,jj,kk], vgrid)
+        volume_spectra[:,jj,kk] = np.bincount(vinds[:,jj,kk], minlength=nelts)
+        dens_spectra[:,jj,kk] = np.bincount(vinds[:,jj,kk],
+                weights=pdata[:,jj,kk],
+                minlength=nelts)
 
 pl.figure(3)
 pl.clf()
-pl.plot(vgrid,volume_spectrum,label='volume')
-pl.plot(vgrid,dens_spectrum,label='density')
+pl.plot(vgrid,volume_spectra.reshape([nelts,np.prod(volume_spectra.shape[1:])]),label='volume')
+pl.plot(vgrid,dens_spectra.reshape([nelts,np.prod(volume_spectra.shape[1:])]),label='density')
 pl.legend(loc='best')
 
 gmc = cloud(fileName='/Users/adam/repos/despotic/cloudfiles/MilkyWayGMC.desp')
@@ -84,10 +86,10 @@ pl.figure()
 spectra = {}
 for ii,key in enumerate(props):
     speccube = np.empty(vgrid.shape+tau11.shape[1:])
-    for jj,kk in np.nditer(np.indices(tau11.shape[1:]).tolist()):
-        speccube[jj,kk] = np.bincount(vinds, weights=props[key][:,jj,kk],
+    for jj,kk in np.ndindex(tau11.shape[1:]):
+        speccube[:,jj,kk] = np.bincount(vinds[:,jj,kk], weights=props[key][:,jj,kk],
                 minlength=nelts)
     spectra[key] = speccube
     pl.subplot(2,3,ii)
-    pl.plot(vgrid, spectra[key])
+    pl.plot(vgrid, spectra[key].reshape([vgrid.size,np.prod(spectra[key].shape[1:])]))
     pl.title(key)

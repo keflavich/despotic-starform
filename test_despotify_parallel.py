@@ -34,11 +34,22 @@ gmc.Td = 20.
 # add ortho-h2co
 gmc.addEmitter('o-h2co', 1e-9)
 
-spectra,props = despotify(pdata, vdata, vgrid, vox_length, cloud=gmc, nprocs=2)
+spectra,props = despotify(pdata, vdata, vgrid, vox_length, cloud=gmc)
+spectra_p,props_p = despotify(pdata, vdata, vgrid, vox_length, cloud=gmc, nprocs=2)
 
 onedshape = vgrid.shape + (np.prod(spectra[spectra.keys()[0]].shape[1:]),)
-for key in spectra:
-    pl.figure()
+for ind,key in enumerate(spectra):
+    pl.figure(1)
+    pl.subplot(3,2,ind+1)
     pl.plot(vgrid, spectra[key].reshape(onedshape), label=key)
     pl.legend(loc='best')
 
+    pl.figure(2)
+    pl.subplot(3,2,ind+1)
+    pl.plot(vgrid, spectra_p[key].reshape(onedshape), label=key)
+    pl.legend(loc='best')
+
+    pl.figure(3)
+    pl.subplot(3,2,ind+1)
+    pl.plot(vgrid, (spectra_p[key]-spectra[key]).reshape(onedshape), label=key)
+    pl.legend(loc='best')

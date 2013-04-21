@@ -2,7 +2,7 @@ import despotic
 import numpy as np
 import itertools
 try:
-    import multiprocessing
+    from parallel_map import parallel_map
     parallelOK = True
 except ImportError:
     parallelOK = False
@@ -105,9 +105,16 @@ def despotify(pcube, vcube, vgrid, voxel_size=3.08e18, species='o-h2co',
                                                       output_properties)]
             return dict(results)
 
-        pool = multiprocessing.Pool(nprocs)
-        result = pool.map(model_a_pixel,pcube.flat)
-        raise TheDead
+        # run the parallel modeling
+        result = parallel_map(model_a_pixel, pcube.flat, nprocs)
+
+        # put the modelsinto their locations
+        for ind,out in enumerate(result):
+            zi,yi,xi = np.unravel_index(ind, pcube.shape)
+            for ln,pr in itertools.product(output_linenumbers,
+                                           output_properties):
+                key = "{0}{1}".format(pr,ln)
+                prop_cubes[key][zi,yi,xi] = out[key]
 
     else: 
         try:

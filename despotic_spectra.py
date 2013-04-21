@@ -42,3 +42,11 @@ for ii,key in enumerate(spectra):
     pl.plot(vgrid, spectra[key].reshape(onedshape), label=key)
     pl.title(key)
 
+import pyfits
+hdr = pyfits.Header()
+hdr.update('CRPIX3', 1)
+hdr.update('CRVAL3', vgrid[0])
+hdr.update('CDELT3', vgrid[1]-vgrid[0])
+for key in spectra:
+    fitsfile = pyfits.PrimaryHDU(data=spectra[key], header=hdr)
+    fitsfile.writeto('STARFORM_centralpixels_%s.fits' % key, clobber=True)

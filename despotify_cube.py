@@ -6,6 +6,12 @@ try:
     parallelOK = True
 except ImportError:
     parallelOK = False
+try:
+    from progressbar import ProgressBar,Percentage,Bar
+    from progressbar import AdaptiveETA as ETA
+except ImportError:
+    from progressbar import ProgressBar,Percentage,Bar
+    from progressbar import ETA
 
 
 def despotify(pcube, vcube, vgrid, voxel_size=3.08e18, species='o-h2co',
@@ -92,6 +98,8 @@ def despotify(pcube, vcube, vgrid, voxel_size=3.08e18, species='o-h2co',
         ("{0}{1}".format(pr,ln), np.empty(pcube.shape))
         for ln,pr in itertools.product(output_linenumbers, output_properties)])
 
+    pb = ProgressBar(widgets=[Percentage(), ETA(), Bar()],
+                     maxval=pcube.size).start()
 
     if parallelOK and nprocs > 1:
         # for parallelization
@@ -103,10 +111,14 @@ def despotify(pcube, vcube, vgrid, voxel_size=3.08e18, species='o-h2co',
                         line[ln][pr])
                        for ln,pr in itertools.product(output_linenumbers,
                                                       output_properties)]
+            pb.update(pb.currval+1)
             return dict(results)
 
         # run the parallel modeling
         result = parallel_map(model_a_pixel, pcube.flat, nprocs)
+
+        #
+        pb.finish()
 
         # put the modelsinto their locations
         for ind,out in enumerate(result):
@@ -117,15 +129,6 @@ def despotify(pcube, vcube, vgrid, voxel_size=3.08e18, species='o-h2co',
                 prop_cubes[key][zi,yi,xi] = out[key]
 
     else: 
-        try:
-            from progressbar import ProgressBar,Percentage,Bar
-            from progressbar import AdaptiveETA as ETA
-        except ImportError:
-            from progressbar import ProgressBar,Percentage,Bar
-            from progressbar import ETA
-        pb = ProgressBar(widgets=[Percentage(), ETA(), Bar()],
-                         maxval=pcube.size).start()
-
         for (zi,yi,xi),nH in np.ndenumerate(pcube):
             cloud.nH = pcube[zi,yi,xi]
             cloud.colDen = cloud.nH * voxel_size

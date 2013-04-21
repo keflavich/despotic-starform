@@ -22,7 +22,7 @@ cloud_mean_density = cloud_mass * 2e33/2.8/1.67e-24 / (total_density * vox_lengt
 # start with simple case
 x,y = 128,128
 nelts = 100
-expand = 1
+expand = 30
 vgrid = np.linspace(ppvcube.min(),ppvcube.max(),nelts)
 vdata = ppvcube[:,y-expand:y+expand+1,x-expand:x+expand+1]
 pdata = pppcube[:,y-expand:y+expand+1,x-expand:x+expand+1] * cloud_mean_density
@@ -36,11 +36,7 @@ gmc.Td = 20.
 # add ortho-h2co
 gmc.addEmitter('o-h2co', 1e-9)
 
-# TODO: parallelize
-# import agpy
-# results = agpy.parallel_map(despotify, (pdata,vdata,vgrid)
-
-spectra,props = despotify(pdata, vdata, vgrid, vox_length, cloud=gmc)
+spectra,props = despotify(pdata, vdata, vgrid, vox_length, cloud=gmc, nprocs=16)
 
 pl.figure()
 onedshape = vgrid.shape + (np.prod(spectra[spectra.keys()[0]].shape[1:]),)

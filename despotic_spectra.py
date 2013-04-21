@@ -24,23 +24,6 @@ vgrid = np.linspace(ppvcube.min(),ppvcube.max(),nelts)
 vdata = ppvcube[:,y-expand:y+expand+1,x-expand:x+expand+1]
 pdata = pppcube[:,y-expand:y+expand+1,x-expand:x+expand+1] * cloud_mean_density
 
-vinds = np.empty(vdata.shape,dtype='int64')
-volume_spectra = np.empty(vgrid.shape + vdata.shape[1:])
-dens_spectra = np.empty(vgrid.shape + vdata.shape[1:])
-for jj in xrange(vdata.shape[1]):
-    for kk in xrange(vdata.shape[2]):
-        vinds[:,jj,kk] = np.digitize(vdata[:,jj,kk], vgrid)
-        volume_spectra[:,jj,kk] = np.bincount(vinds[:,jj,kk], minlength=nelts)
-        dens_spectra[:,jj,kk] = np.bincount(vinds[:,jj,kk],
-                weights=pdata[:,jj,kk],
-                minlength=nelts)
-
-pl.figure(3)
-pl.clf()
-pl.plot(vgrid,volume_spectra.reshape([nelts,np.prod(volume_spectra.shape[1:])]),label='volume')
-pl.plot(vgrid,dens_spectra.reshape([nelts,np.prod(volume_spectra.shape[1:])]),label='density')
-pl.legend(loc='best')
-
 gmc = cloud(fileName='/Users/adam/repos/despotic/cloudfiles/MilkyWayGMC.desp')
 
 gmc.sigmaNT = 1e5 # cm/s, instead of 2 as default
@@ -50,46 +33,12 @@ gmc.Td = 20.
 # add ortho-h2co
 gmc.addEmitter('o-h2co', 1e-9)
 
-
-tau11 = np.empty(pdata.shape)
-tau22 = np.empty(pdata.shape)
-tex11 = np.empty(pdata.shape)
-tex22 = np.empty(pdata.shape)
-tb11 = np.empty(pdata.shape)
-tb22 = np.empty(pdata.shape)
-
-print "Shape: ",tau11.shape
-
-import progressbar
-pb = progressbar.ProgressBar()
-
-for ii in pb(xrange(tau11.size)):
-    gmc.nH = pdata.flat[ii]
-    gmc.colDen = gmc.nH * vox_length
-    line = gmc.lineLum('o-h2co')
-    ind = np.unravel_index(ii, tau11.shape)
-    tau11[ind] = line[0]['tau']
-    tau22[ind] = line[2]['tau']
-    tex11[ind] = line[0]['Tex']
-    tex22[ind] = line[2]['Tex']
-    tb11[ind] = line[0]['intTB']
-    tb22[ind] = line[2]['intTB']
-
-props = {'tau11':tau11,
-    'tau22':tau22,
-    'tex11':tex11,
-    'tex22':tex22,
-    'tb11':tb11,
-    'tb22':tb22,}
+spectra,props = despotify(pdata, vdata, vgrid, vox_length, cloud=gmc)
 
 pl.figure()
-spectra = {}
-for ii,key in enumerate(props):
-    speccube = np.empty(vgrid.shape+tau11.shape[1:])
-    for jj,kk in np.ndindex(tau11.shape[1:]):
-        speccube[:,jj,kk] = np.bincount(vinds[:,jj,kk], weights=props[key][:,jj,kk],
-                minlength=nelts)
-    spectra[key] = speccube
-    pl.subplot(2,3,ii)
-    pl.plot(vgrid, spectra[key].reshape([vgrid.size,np.prod(spectra[key].shape[1:])]))
+onedshape = vgrid.shape + (np.prod(spectra[spectra.keys()[0]].shape[1:]),)
+for ii,key in enumerate(spectra):
+    pl.subplot(2,3,ii+1)
+    pl.plot(vgrid, spectra[key].reshape(onedshape), label=key)
     pl.title(key)
+

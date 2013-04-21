@@ -64,7 +64,7 @@ def despotify(pcube, vcube, vgrid, voxel_size=3.08e18, species='o-h2co',
     # volume_spectra = np.empty(outcubeshape)
     # dens_spectra = np.empty(outcubeshape)
     for jj,kk in np.ndindex(imshape):
-        vinds[:,jj,kk] = np.digitize(vdata[:,jj,kk], vgrid)
+        vinds[:,jj,kk] = np.digitize(vcube[:,jj,kk], vgrid)
     #     volume_spectra[:,jj,kk] = np.bincount(vinds[:,jj,kk], minlength=nelts)
     #     dens_spectra[:,jj,kk] = np.bincount(vinds[:,jj,kk],
     #             weights=pcube[:,jj,kk],

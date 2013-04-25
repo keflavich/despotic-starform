@@ -76,15 +76,12 @@ def despotify(pcube, vcube, vgrid, voxel_size=3.08e18, species='o-h2co',
     nelts = vgrid.size
 
     vinds = np.empty(vcube.shape, dtype='int64')
-    # not needed
-    # volume_spectra = np.empty(outcubeshape)
-    # dens_spectra = np.empty(outcubeshape)
+    dens_spectra = np.empty(outcubeshape)
     for jj,kk in np.ndindex(imshape):
         vinds[:,jj,kk] = np.digitize(vcube[:,jj,kk], vgrid)
-    #     volume_spectra[:,jj,kk] = np.bincount(vinds[:,jj,kk], minlength=nelts)
-    #     dens_spectra[:,jj,kk] = np.bincount(vinds[:,jj,kk],
-    #             weights=pcube[:,jj,kk],
-    #             minlength=nelts)
+        dens_spectra[:,jj,kk] = np.bincount(vinds[:,jj,kk],
+                 weights=pcube[:,jj,kk],
+                 minlength=nelts)
 
     cloudfile_path = cloudfile_path or despotic.__path__[0]+"/cloudfiles/"
 
@@ -155,5 +152,5 @@ def despotify(pcube, vcube, vgrid, voxel_size=3.08e18, species='o-h2co',
                             weights=prop_cubes[key][:,jj,kk],
                             minlength=nelts)
 
-    return spectra_cubes,prop_cubes
+    return spectra_cubes,prop_cubes,dens_spectra
 

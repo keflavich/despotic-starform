@@ -75,6 +75,8 @@ def despotify(pcube, vcube, vgrid, voxel_size=3.08e18, species='o-h2co',
     outcubeshape = (vgrid.size,) + imshape
     nelts = vgrid.size
 
+    print "Shapes: imshape ",imshape," outcubeshape ",outcubeshape,' nelts ',nelts
+
     vinds = np.empty(vcube.shape, dtype='int64')
     dens_spectra = np.empty(outcubeshape)
     for jj,kk in np.ndindex(imshape):
@@ -82,6 +84,8 @@ def despotify(pcube, vcube, vgrid, voxel_size=3.08e18, species='o-h2co',
         dens_spectra[:,jj,kk] = np.bincount(vinds[:,jj,kk],
                  weights=pcube[:,jj,kk],
                  minlength=nelts)
+
+    print "Made dens_spectra"
 
     cloudfile_path = cloudfile_path or despotic.__path__[0]+"/cloudfiles/"
 
@@ -95,10 +99,13 @@ def despotify(pcube, vcube, vgrid, voxel_size=3.08e18, species='o-h2co',
         ("{0}{1}".format(pr,ln), np.empty(pcube.shape))
         for ln,pr in itertools.product(output_linenumbers, output_properties)])
 
+    print "made prob_cubes"
+
     pb = ProgressBar(widgets=[Percentage(), ETA(), Bar()],
                      maxval=pcube.size).start()
 
     if parallelOK and nprocs > 1:
+	print "Running in parallel"
         # for parallelization
         def model_a_pixel(density, cloud=cloud):
             cloud.nH = density
@@ -126,10 +133,14 @@ def despotify(pcube, vcube, vgrid, voxel_size=3.08e18, species='o-h2co',
                 prop_cubes[key][zi,yi,xi] = out[key]
 
     else: 
+	print "Running in serial"
         for (zi,yi,xi),nH in np.ndenumerate(pcube):
+            #print "At pixel %i,%i,%i" % (zi,yi,xi)
             cloud.nH = pcube[zi,yi,xi]
             cloud.colDen = cloud.nH * voxel_size
-            line = cloud.lineLum(species)
+            #print "Running lineLum on ",species
+            line = cloud.lineLum(species) #,verbose=True,veryverbose=True) 
+            #print "Finished lineLum"
 
             for ln,pr in itertools.product(output_linenumbers,
                                            output_properties):
@@ -138,6 +149,7 @@ def despotify(pcube, vcube, vgrid, voxel_size=3.08e18, species='o-h2co',
 
             pb.update(pb.currval+1)
         pb.finish()
+        print "Finished cube loop"
 
     # spectral cubes have outcubeshape
     spectra_cubes = {}

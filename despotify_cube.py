@@ -73,16 +73,16 @@ def despotify(pcube, vcube, vgrid, voxel_size=3.08e18, species='o-h2co',
 
     imshape = pcube.shape[1:]
     # need +1 because bincount can put things at element 0 or element (last+1)
-    outcubeshape = (vgrid.size+1,) + imshape
-    nelts = vgrid.size
+    nelts = vgrid.size+1
+    outcubeshape = (nelts,) + imshape
 
     vinds = np.empty(vcube.shape, dtype='int64')
     dens_spectra = np.empty(outcubeshape)
     for jj,kk in np.ndindex(imshape):
         vinds[:,jj,kk] = np.digitize(vcube[:,jj,kk], vgrid)
         dens_spectra[:,jj,kk] = np.bincount(vinds[:,jj,kk],
-                 weights=pcube[:,jj,kk],
-                 minlength=nelts)
+                                            weights=pcube[:,jj,kk],
+                                            minlength=nelts)
 
     cloudfile_path = cloudfile_path or despotic.__path__[0]+"/cloudfiles/"
 

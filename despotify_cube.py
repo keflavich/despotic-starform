@@ -72,7 +72,8 @@ def despotify(pcube, vcube, vgrid, voxel_size=3.08e18, species='o-h2co',
         raise ValueError('Velocity grid must be 1-dimensional')
 
     imshape = pcube.shape[1:]
-    outcubeshape = (vgrid.size,) + imshape
+    # need +1 because bincount can put things at element 0 or element (last+1)
+    outcubeshape = (vgrid.size+1,) + imshape
     nelts = vgrid.size
 
     print "Shapes: imshape ",imshape," outcubeshape ",outcubeshape,' nelts ',nelts

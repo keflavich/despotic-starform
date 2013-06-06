@@ -18,10 +18,12 @@ if len(sys.argv)>3:
 else:
     runname='test'
 
+path = os.getcwd()
+
 # data from http://starformat.obspm.fr/starformat/project/TURB_BOX
-with h5py.File('/projects/ginsbura/h2co-despotic/simulations/DF_hdf5_plt_cnt_0020_dens_downsampled','r') as ds:
+with h5py.File(path+'/DF_hdf5_plt_cnt_0020_dens_downsampled','r') as ds:
     pppcube = np.array(ds['dens_downsampled'])
-with h5py.File('/projects/ginsbura/h2co-despotic/simulations/DF_hdf5_plt_cnt_0020_velz_downsampled','r') as ds:
+with h5py.File(path+'/DF_hdf5_plt_cnt_0020_velz_downsampled','r') as ds:
     ppvcube = np.array(ds['velz_downsampled'])
 
 cloud_mass = 1e4 # msun
@@ -38,7 +40,7 @@ vgrid = np.linspace(ppvcube.min(),ppvcube.max(),nelts)
 vdata = ppvcube[:,y-expand:y+expand+1,x-expand:x+expand+1]
 pdata = pppcube[:,y-expand:y+expand+1,x-expand:x+expand+1] * cloud_mean_density
 
-gmc = cloud(fileName='/projects/ginsbura/h2co-despotic/simulations/MilkyWayGMC_copy.desp')
+gmc = cloud(fileName=path+'/MilkyWayGMC_copy.desp')
 
 gmc.sigmaNT = 1e5 # cm/s, instead of 2 as default
 gmc.Tg = 20. # start at 20 instead of 15 K
@@ -70,7 +72,7 @@ hdr.update('CRVAL3', vgrid[0])
 hdr.update('CDELT3', vgrid[1]-vgrid[0])
 for key in spectra:
     fitsfile = pyfits.PrimaryHDU(data=spectra[key], header=hdr)
-    fitsfile.writeto('/projects/ginsbura/h2co-despotic/simulations/STARFORM_centralpixels_%sJanus%s.fits' % (key,runname), clobber=True)
+    fitsfile.writeto(path+'/STARFORM_centralpixels_%sJanus%s.fits' % (key,runname), clobber=True)
 
 fitsfile = pyfits.PrimaryHDU(data=densspec,header=hdr)
-fitsfile.writeto('/projects/ginsbura/h2co-despotic/simulations/STARFORM_centralpixels_densityspectrumJanus%s.fits' % runname, clobber=True)
+fitsfile.writeto(path+'/STARFORM_centralpixels_densityspectrumJanus%s.fits' % runname, clobber=True)
